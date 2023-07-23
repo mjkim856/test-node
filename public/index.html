@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>이벤트 신청</title>
+</head>
+<body>
+    <h1>이벤트 신청</h1>
+    <form id="eventForm">
+        <label for="name">이름:</label>
+        <input type="text" id="name" name="name" required><br>
+
+        <label for="age">나이:</label>
+        <input type="number" id="age" name="age" required><br>
+
+        <label for="gender">성별:</label>
+        <select id="gender" name="gender" required>
+            <option value="m">남성</option>
+            <option value="f">여성</option>
+        </select><br>
+
+        <label for="tel">전화번호:</label>
+        <input type="tel" id="tel" name="tel" required><br>
+
+        <input type="submit" value="신청">
+    </form>
+
+    <!-- 데이터 조회 버튼 -->
+    <button id="btnFetch">데이터 조회</button>
+
+    <!-- 데이터 삭제 버튼 -->
+    <button id="btnDelete" disabled>데이터 삭제</button>
+
+    <!-- 데이터 수정 폼 -->
+    <form id="updateForm" style="display: none;">
+        <!-- 기존 필드들 -->
+        <input type="hidden" id="updateTel">
+        <label for="updateName">수정할 이름:</label>
+        <input type="text" id="updateName" required>
+        <!-- 다른 필드들도 추가 -->
+        <button type="submit">수정</button>
+    </form>
+
+
+    <script>
+        const eventForm = document.getElementById("eventForm");
+        eventForm.addEventListener("submit", submitForm);
+    
+        function submitForm(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+    
+            fetch('http://localhost:3000/submit-form', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                eventForm.reset();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // 데이터 조회
+        document.getElementById('btnFetch').addEventListener('click', () => {
+            fetch('http://localhost:3000/users')
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data); // 서버에서 받아온 데이터 확인
+                    // 데이터를 화면에 표시하거나 다른 작업 수행
+                    // 예시: 화면에 테이블로 표시
+                    const table = document.createElement('table');
+                    for (const user of data) {
+                        const row = table.insertRow();
+                        row.insertCell().textContent = user.name;
+                        row.insertCell().textContent = user.age;
+                        row.insertCell().textContent = user.gender;
+                        row.insertCell().textContent = user.tel;
+                        row.addEventListener('click', () => {
+                            // 데이터 삭제를 위해 선택한 사용자의 ID 저장
+                            document.getElementById('btnDelete').dataset.tel = user.tel;
+                            // 데이터 수정을 위해 선택한 사용자의 정보를 수정 폼에 표시
+                            document.getElementById('updateTel').value = user.tel;
+                            document.getElementById('updateName').value = user.name;
+                            // 다른 필드들도 추가
+                            // 수정 폼 표시
+                            document.getElementById('updateForm').style.display = 'block';
+                        });
+                    }
+                    document.body.appendChild(table);
+                    document.getElementById('btnDelete').disabled = false;
+                })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // 데이터 삭제
+        document.getElementById('btnDelete').addEventListener('click', () => {
+            const tel = document.getElementById('btnDelete').dataset.tel;
+            fetch(`http://localhost:3000/users/${tel}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                // 삭제 후 화면 갱신
+                document.getElementById('btnFetch').click();
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+            
+        // 데이터 수정
+// 데이터 수정
+    document.getElementById('updateForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const tel = document.getElementById('updateTel').value;
+        const name = document.getElementById('updateName').value;
+
+        const data = {
+            name: name,
+            tel: tel
+        };
+
+        fetch(`http://localhost:3000/users/${tel}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            // 수정 후 폼 숨기기
+            document.getElementById('updateForm').style.display = 'none';
+        })
+        .catch(error => console.error('Error:', error));
+    });
+    </script>
+
+</body>
+</html>
